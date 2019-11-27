@@ -1,0 +1,7 @@
+multiline
+
+text
+in the 
+second
+
+file
