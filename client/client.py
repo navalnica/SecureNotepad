@@ -17,7 +17,7 @@ class Session:
             print(f'url: "{url}"')
 
         # args for http methods
-        self.args = {'user': 'user', 'password': 'password', 'filename': 'filename'}
+        self.args = {'user': 'user', 'password': 'password', 'filename': 'filename', 'tfa_code': 'tfa_code'}
     
         self.rsa_private_key = rsa.generate_private_key()
         self.rsa_public_key = rsa.get_public_key(self.rsa_private_key)
@@ -64,6 +64,30 @@ class Session:
             f'{self.url}/login?{self.args["user"]}={self.user}&{self.args["password"]}={self.password_encrypted}',
             headers=headers
         )
+        message = response.json()
+        if response.status_code == 200:
+            return message['message']
+        else:
+            raise Exception(message['error'])
+
+
+    def tfa_confirm(self, tfa_code):
+        if self.serpent_key is None:
+            raise ValueError('serpent_key is None')
+
+        tfa_code_encrypted = Serpent(self.serpent_key).cipher(tfa_code.encode('utf-8'))
+        tfa_code_encrypted = b64encode(tfa_code_encrypted).decode()
+
+        headers = {'Content-type': 'application/octet-stream'}
+        if self.debug:
+            print(separator)
+            print(f'2fa code: {tfa_code}')
+            print(f'sending 2fa code to the server')
+        response = rq.post(
+            f'{self.url}/tfa?{self.args["user"]}={self.user}&{self.args["password"]}={self.password_encrypted}&{self.args["tfa_code"]}={tfa_code_encrypted}',
+            headers=headers
+        )
+        
         message = response.json()
         if response.status_code == 200:
             return message['message']
